@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="LeetCode 42 接雨水：个人代码记录、前后缀最大值与双指针优化。">
+  <title>42. 接雨水｜题解笔记</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --text: #172033;
+      --muted: #657086;
+      --primary: #3867d6;
+      --primary-soft: #edf3ff;
+      --border: #dfe5ef;
+      --code: #101827;
+      --success: #16845b;
+      --warning-bg: #fff8e6;
+      --warning-border: #f1bc42;
+      --shadow: 0 16px 45px rgba(31, 43, 74, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: linear-gradient(180deg, #eef3ff 0, var(--bg) 310px);
+      font: 16px/1.75 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    main { width: min(960px, calc(100% - 32px)); margin: 48px auto 80px; }
+
+    header, section {
+      margin-bottom: 22px;
+      padding: 30px 34px;
+      background: var(--surface);
+      border: 1px solid rgba(223, 229, 239, 0.85);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 7px 0 8px; font-size: clamp(30px, 5vw, 46px); line-height: 1.25; }
+    h2 { margin: 0 0 16px; font-size: 24px; }
+    h3 { margin: 24px 0 10px; font-size: 18px; }
+    p { margin: 8px 0; }
+    a { color: var(--primary); }
+    .subtitle { color: var(--muted); font-size: 17px; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 20px; }
+    .tag {
+      padding: 4px 11px;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .callout {
+      margin: 18px 0;
+      padding: 14px 18px;
+      background: var(--warning-bg);
+      border-left: 4px solid var(--warning-border);
+      border-radius: 8px;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 14px 0;
+      padding: 20px;
+      color: #d9e2f1;
+      background: var(--code);
+      border-radius: 12px;
+      font: 14px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      tab-size: 4;
+    }
+
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    :not(pre) > code { padding: 2px 6px; background: var(--primary-soft); border-radius: 5px; }
+
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .metric { padding: 17px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+    .metric strong { display: block; color: var(--success); font-size: 18px; }
+    ol, ul { padding-left: 24px; }
+    li + li { margin-top: 7px; }
+    footer { color: var(--muted); text-align: center; font-size: 14px; }
+
+    @media (max-width: 640px) {
+      main { margin-top: 20px; }
+      header, section { padding: 23px 20px; border-radius: 14px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">LeetCode Hot 100 · Two Pointers</div>
+      <h1>42. 接雨水</h1>
+      <p class="subtitle">给定一组宽度均为 1 的非负柱子，计算下雨后这些柱子之间能够接住的雨水总量。</p>
+      <div class="tags">
+        <span class="tag">数组</span><span class="tag">前后缀最大值</span><span class="tag">双指针</span>
+      </div>
+      <p><a href="https://leetcode.cn/problems/trapping-rain-water/?envType=study-plan-v2&amp;envId=top-100-liked">查看 LeetCode 原题</a></p>
+    </header>
+
+    <section>
+      <h2>我的代码记录</h2>
+      <p>分别预处理每个位置左边和右边的最高柱子，再逐列计算这一位置能够存放的水量。</p>
+      <pre><code>class Solution:
+    def trap(self, height: List[int]) -&gt; int:
+        # 每一列的水量：min(前缀最大值, 后缀最大值) - 当前高度
+        n = len(height)
+        ans = 0
+
+        # 前缀最大值序列
+        l1 = [0] * n
+        l1[0] = height[0]
+        for i in range(1, n):
+            l1[i] = max(height[i], l1[i - 1])
+
+        # 后缀最大值序列
+        l2 = [0] * n
+        l2[-1] = height[-1]
+        for i in range(-2, -n - 1, -1):
+            l2[i] = max(height[i], l2[i + 1])
+
+        for i in range(n):
+            ans += min(l1[i], l2[i]) - height[i]
+
+        return ans</code></pre>
+      <div class="callout"><strong>结论先行：</strong>这段负下标循环没有错误。<code>range(-2, -n - 1, -1)</code> 会依次产生 <code>-2, -3, ..., -n</code>，刚好从倒数第二个元素处理到第一个元素。</div>
+      <p>题目保证 <code>n ≥ 1</code>，因此对 <code>l1[0]</code>、<code>l2[-1]</code> 和 <code>height[0]</code> 的访问都是安全的。</p>
+    </section>
+
+    <section>
+      <h2>核心公式：按列计算</h2>
+      <p>位置 <code>i</code> 能达到的水面高度，取决于它左边最高柱子和右边最高柱子中较矮的一个：</p>
+      <pre><code>water[i] = min(left_max[i], right_max[i]) - height[i]</code></pre>
+      <ol>
+        <li><code>left_max[i]</code> 表示区间 <code>[0, i]</code> 内的最大高度。</li>
+        <li><code>right_max[i]</code> 表示区间 <code>[i, n - 1]</code> 内的最大高度。</li>
+        <li>较矮的边界决定水面上限，再减去当前柱高，就是这一列的水量。</li>
+      </ol>
+      <p>两个最大值都包含当前位置，因此公式结果一定不会为负数；最左端和最右端也会自然贡献 0。</p>
+    </section>
+
+    <section>
+      <h2>方法一解析：前后缀最大值</h2>
+      <p>你的实现逻辑完整。为了让下标方向更容易阅读，可以将后缀循环改成常规正下标：</p>
+      <pre><code>class Solution:
+    def trap(self, height: List[int]) -&gt; int:
+        n = len(height)
+        left_max = [0] * n
+        right_max = [0] * n
+
+        left_max[0] = height[0]
+        for i in range(1, n):
+            left_max[i] = max(left_max[i - 1], height[i])
+
+        right_max[-1] = height[-1]
+        for i in range(n - 2, -1, -1):
+            right_max[i] = max(right_max[i + 1], height[i])
+
+        water = 0
+        for i in range(n):
+            water += min(left_max[i], right_max[i]) - height[i]
+
+        return water</code></pre>
+      <div class="grid">
+        <div class="metric"><strong>时间复杂度 O(n)</strong>构造两个数组并求和，共进行三次线性遍历。</div>
+        <div class="metric"><strong>空间复杂度 O(n)</strong>两个长度为 n 的辅助数组仍属于 O(n) 空间。</div>
+      </div>
+      <p>负下标版本与正下标版本在正确性和复杂度上没有区别；正下标只是更符合多数人的阅读习惯。</p>
+    </section>
+
+    <section>
+      <h2>方法二：双指针优化空间</h2>
+      <p>前后缀数组保存了所有位置的最大值，但计算当前位置时只需要当前的 <code>left_max</code> 和 <code>right_max</code>。因此可以用左右指针把额外空间降到常数级。</p>
+      <pre><code>class Solution:
+    def trap(self, height: List[int]) -&gt; int:
+        left, right = 0, len(height) - 1
+        left_max = height[left]
+        right_max = height[right]
+        water = 0
+
+        while left &lt; right:
+            if left_max &lt;= right_max:
+                left += 1
+                left_max = max(left_max, height[left])
+                water += left_max - height[left]
+            else:
+                right -= 1
+                right_max = max(right_max, height[right])
+                water += right_max - height[right]
+
+        return water</code></pre>
+      <div class="callout"><strong>为什么可以移动较矮的一侧？</strong>当 <code>left_max ≤ right_max</code> 时，左侧当前位置的水量已经由 <code>left_max</code> 决定；右边至少存在一个高度为 <code>right_max</code> 的边界，不必再知道更靠内的具体高度。另一侧同理。</div>
+      <div class="grid">
+        <div class="metric"><strong>时间复杂度 O(n)</strong>左右指针合计只移动 n−1 次。</div>
+        <div class="metric"><strong>空间复杂度 O(1)</strong>只保留两个指针、两个最大值和答案。</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>示例推演与易错点</h2>
+      <h3><code>height = [4, 2, 0, 3, 2, 5]</code></h3>
+      <p>每个位置的积水量依次为 <code>[0, 2, 4, 1, 2, 0]</code>，总量为 <code>9</code>。</p>
+      <ul>
+        <li><strong>不能只看相邻柱子：</strong>决定水量的是当前位置两侧的最高边界，而不是左右相邻高度。</li>
+        <li><strong>不要把两侧最大值相加：</strong>水面受短板限制，所以必须使用 <code>min(left_max, right_max)</code>。</li>
+        <li><strong>区分时间和空间：</strong>前后缀方案已经是 O(n) 时间，但仍使用 O(n) 额外空间；双指针优化的是空间。</li>
+      </ul>
+    </section>
+
+    <footer>学习笔记 · LeetCode 42 · 接雨水</footer>
+  </main>
+</body>
+</html>
